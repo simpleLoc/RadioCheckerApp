@@ -1,10 +1,13 @@
 package com.example.xmlmapparser;
 
+import android.net.Uri;
+
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -12,7 +15,7 @@ import javax.xml.parsers.SAXParserFactory;
 
 public class XMLMapParser {
 
-    public Map parse(final String path) {
+    public Map parse(final InputStream inputStream) {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         Map m = null;
 
@@ -20,7 +23,7 @@ public class XMLMapParser {
             SAXParser parser = factory.newSAXParser();
 
             ParseHandler handler = new ParseHandler();
-            parser.parse(path, handler);
+            parser.parse(inputStream, handler);
             m = handler.getResult();
 
         } catch (SAXException e) {
