@@ -34,8 +34,8 @@ public class XMLMapParser {
         return m;
     }
 
-    private class ParseHandler extends DefaultHandler {
-        private StringBuilder currentValue = new StringBuilder();
+    private static class ParseHandler extends DefaultHandler {
+        private final StringBuilder currentValue = new StringBuilder();
 
         private Map map = null;
         private Floor currentFloor = null;

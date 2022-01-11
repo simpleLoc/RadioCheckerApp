@@ -69,10 +69,12 @@ public class MapView extends View {
         this.map = map;
         Optional<Floor> first = map.getFloors().values().stream().findFirst();
         floor = first.orElse(null);
+        invalidate();
     }
 
     public void selectFloor(String name) {
         floor = map.getFloors().getOrDefault(name, floor);
+        invalidate();
     }
 
     public void setPosition(Vec2 position) {
