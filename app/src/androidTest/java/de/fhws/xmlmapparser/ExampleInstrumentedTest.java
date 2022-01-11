@@ -1,4 +1,4 @@
-package com.example.xmlmapparser;
+package de.fhws.xmlmapparser;
 
 import android.content.Context;
 

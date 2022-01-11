@@ -1,25 +1,23 @@
-package com.example.maprenderer;
+package de.fhws.maprenderer;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Rect;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
-import com.example.xmlmapparser.AccessPoint;
-import com.example.xmlmapparser.Beacon;
-import com.example.xmlmapparser.Floor;
-import com.example.xmlmapparser.Map;
-import com.example.xmlmapparser.R;
-import com.example.xmlmapparser.UWBAnchor;
-import com.example.xmlmapparser.Vec2;
-import com.example.xmlmapparser.Wall;
+import de.fhws.xmlmapparser.AccessPoint;
+import de.fhws.xmlmapparser.Beacon;
+import de.fhws.xmlmapparser.Floor;
+import de.fhws.xmlmapparser.Map;
+import de.fhws.xmlmapparser.R;
+import de.fhws.xmlmapparser.UWBAnchor;
+import de.fhws.xmlmapparser.Vec2;
+import de.fhws.xmlmapparser.Wall;
 
 import java.util.Optional;
 

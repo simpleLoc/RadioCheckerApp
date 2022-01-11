@@ -1,4 +1,4 @@
-package com.example.xmlmapparser;
+package de.fhws.xmlmapparser;
 
 public class Wall {
     public Vec2 p0 = new Vec2();

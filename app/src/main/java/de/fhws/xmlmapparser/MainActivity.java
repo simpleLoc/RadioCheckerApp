@@ -1,4 +1,4 @@
-package com.example.xmlmapparser;
+package de.fhws.xmlmapparser;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -8,7 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 
-import com.example.maprenderer.MapView;
+import de.fhws.maprenderer.MapView;
 
 import java.io.FileNotFoundException;
 

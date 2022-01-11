@@ -1,7 +1,6 @@
-package com.example.xmlmapparser;
+package de.fhws.xmlmapparser;
 
 import android.content.ContentResolver;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
@@ -17,9 +16,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.preference.PreferenceFragmentCompat;
-
-import com.example.maprenderer.MapView;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;

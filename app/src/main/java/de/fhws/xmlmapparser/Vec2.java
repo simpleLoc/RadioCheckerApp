@@ -1,4 +1,4 @@
-package com.example.xmlmapparser;
+package de.fhws.xmlmapparser;
 
 public class Vec2 {
     public float x = 0;

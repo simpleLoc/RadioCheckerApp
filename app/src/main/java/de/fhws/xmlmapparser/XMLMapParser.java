@@ -1,6 +1,4 @@
-package com.example.xmlmapparser;
-
-import android.net.Uri;
+package de.fhws.xmlmapparser;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
