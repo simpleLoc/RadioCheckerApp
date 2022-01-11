@@ -109,11 +109,11 @@ public class XMLMapParser {
 
                 case "uwbanchor":
                     assert currentUWB == null;
-                    currentUWB = new UWBAnchor();
-                    currentUWB.name = attributes.getValue("name");
-                    currentUWB.deviceId = attributes.getValue("deviceId");
-                    currentUWB.bleMac = attributes.getValue("bleMac");
-                    currentUWB.position = parsePosition(attributes);
+                    currentUWB = new UWBAnchor(
+                            attributes.getValue("name"),
+                            attributes.getValue("deviceId"),
+                            attributes.getValue("bleMac"),
+                            parsePosition(attributes));
                     break;
 
                 case "beacon":
