@@ -4,4 +4,5 @@
     <string name="settings_button_text">Settings</string>
     <string name="select_map_button_text">Select Map</string>
     <string name="map_path_preview_text">Map path...</string>
+    <string name="reset_seen_button_text">Reset Seen State</string>
 </resources>

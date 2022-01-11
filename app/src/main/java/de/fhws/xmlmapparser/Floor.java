@@ -68,4 +68,18 @@ public class Floor {
     public void addBeacon(Beacon b) {
         beacons.put(b.mac, b);
     }
+
+    public void resetSeen(boolean value) {
+        for (AccessPoint ap : accessPoints.values()) {
+            ap.seen = value;
+        }
+
+        for (UWBAnchor uwbAnchor : uwbAnchors.values()) {
+            uwbAnchor.seen = value;
+        }
+
+        for (Beacon beacon : beacons.values()) {
+            beacon.seen = value;
+        }
+    }
 }

@@ -30,7 +30,14 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/select_map_button_text" />
+
             </LinearLayout>
+
+            <Button
+                android:id="@+id/button_reset_seen"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/reset_seen_button_text" />
 
         </LinearLayout>
     </FrameLayout>

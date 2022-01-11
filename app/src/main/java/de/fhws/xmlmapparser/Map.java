@@ -13,4 +13,10 @@ public class Map {
     public void addFloor(Floor floor) {
         floors.put(floor.getName(), floor);
     }
+
+    public void resetSeen(boolean value) {
+        for (Floor floor : floors.values()) {
+            floor.resetSeen(value);
+        }
+    }
 }

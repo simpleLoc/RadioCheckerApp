@@ -68,5 +68,15 @@ public class SettingsActivity extends AppCompatActivity {
                 mGetContent.launch("*/*");
             }
         });
+
+        Button buttonResetSeen = findViewById(R.id.button_reset_seen);
+        buttonResetSeen.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (MainActivity.currentMap != null) {
+                    MainActivity.currentMap.resetSeen(false);
+                }
+            }
+        });
     }
 }
