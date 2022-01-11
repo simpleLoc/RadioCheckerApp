@@ -19,7 +19,7 @@
 
                 <TextView
                     android:id="@+id/textView_mapPath"
-                    android:layout_width="wrap_content"
+                    android:layout_width="260dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Map path..." />
@@ -35,7 +35,7 @@
             <Spinner
                 android:id="@+id/spinner_floor"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="48dp" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>

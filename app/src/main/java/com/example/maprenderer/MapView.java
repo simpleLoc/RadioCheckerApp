@@ -71,7 +71,6 @@ public class MapView extends View {
         this.map = map;
         Optional<Floor> first = map.getFloors().values().stream().findFirst();
         floor = first.orElse(null);
-        selectFloor("2. Stock");
     }
 
     public void selectFloor(String name) {

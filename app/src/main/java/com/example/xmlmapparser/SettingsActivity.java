@@ -2,6 +2,7 @@ package com.example.xmlmapparser;
 
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
@@ -26,25 +27,26 @@ import java.util.ArrayList;
 public class SettingsActivity extends AppCompatActivity {
 
     ArrayList<String> mFloorNames = new ArrayList<>();
-    ArrayAdapter<String> mSpinnerAdapter = null;
     ContentResolver mContentResolver = null;
+
+    private SharedPreferences mPrefs;
 
     ActivityResultLauncher<String> mGetContent = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override
                 public void onActivityResult(Uri uri) {
-                    XMLMapParser parser = new XMLMapParser();
                     TextView textViewMapPath = findViewById(R.id.textView_mapPath);
                     textViewMapPath.setText(uri.getPath());
                     try {
-                        Map m = parser.parse(mContentResolver.openInputStream(uri));
+                        SharedPreferences.Editor ed = mPrefs.edit();
+                        ed.putString("Uri", uri.toString());
+                        ed.apply();
 
-                        //MapView mapView = findViewById(R.id.MapView);
-                        //mapView.setMap(m);
+                        XMLMapParser parser = new XMLMapParser();
+                        MainActivity.currentMap = parser.parse(mContentResolver.openInputStream(uri));
 
-                        mFloorNames.clear();
-                        mFloorNames.addAll(m.getFloors().keySet());
+                        updateFloorNames();
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -61,7 +63,14 @@ public class SettingsActivity extends AppCompatActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
+        mPrefs = getSharedPreferences(MainActivity.MAP_PREFERENCES, MODE_PRIVATE);
         mContentResolver = getContentResolver();
+
+        String mapUri = mPrefs.getString("Uri", null);
+        if (mapUri != null) {
+            TextView textViewMapPath = findViewById(R.id.textView_mapPath);
+            textViewMapPath.setText(Uri.parse(mapUri).getPath());
+        }
 
         Button buttonSelectMap = findViewById(R.id.button_selectMap);
         buttonSelectMap.setOnClickListener(new View.OnClickListener() {
@@ -71,12 +80,20 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
+        if (MainActivity.currentMap != null) {
+            updateFloorNames();
+        }
+
         Spinner spinnerFloor = findViewById(R.id.spinner_floor);
         spinnerFloor.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, mFloorNames));
         spinnerFloor.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                String floorName = (String) adapterView.getItemAtPosition(i);
 
+                SharedPreferences.Editor ed = mPrefs.edit();
+                ed.putString("FloorName", floorName);
+                ed.apply();
             }
 
             @Override
@@ -84,5 +101,10 @@ public class SettingsActivity extends AppCompatActivity {
 
             }
         });
+    }
+
+    private void updateFloorNames() {
+        mFloorNames.clear();
+        mFloorNames.addAll(MainActivity.currentMap.getFloors().keySet());
     }
 }
