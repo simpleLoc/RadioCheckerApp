@@ -1,10 +1,12 @@
 package de.fhws.maprenderer;
 
 import android.content.Context;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -25,6 +27,9 @@ public class MapView extends View {
     private final Paint wallPaint;
     private final Paint unseenPaint;
     private final Paint seenPaint;
+
+    // this is required to draw small texts with text sizes around 1dp
+    private final float textScale = 16.f;
 
     private static final int INVALID_POINTER_ID = 1;
     private int mActivePointerId = INVALID_POINTER_ID;
@@ -59,7 +64,7 @@ public class MapView extends View {
 
         seenPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         seenPaint.setColor(getResources().getColor(R.color.seenColor, context.getTheme()));
-        seenPaint.setTextSize(8);
+        seenPaint.setTextSize(16);
 
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 
@@ -163,7 +168,15 @@ public class MapView extends View {
         path.close();
         canvas.drawPath(path, beacon.seen ? seenPaint : unseenPaint);
 
-        canvas.drawText(beacon.name, p0.x, p0.y, beacon.seen ? seenPaint : unseenPaint);
+        if (!beacon.seen) {
+            // flip y axis to draw text
+            canvas.scale(1/textScale, -1/textScale);
+            canvas.drawText(beacon.name,
+                    (beacon.position.x + 0.15f) * textScale,
+                    (-beacon.position.y - 0.15f) * textScale,
+                    unseenPaint);
+            canvas.scale(textScale, -textScale);
+        }
     }
 
     private void drawUWB(UWBAnchor uwbAnchor, Canvas canvas) {
@@ -171,11 +184,32 @@ public class MapView extends View {
         canvas.drawRect(uwbAnchor.position.x - size, uwbAnchor.position.y + size,
                 uwbAnchor.position.x + size, uwbAnchor.position.y - size,
                 uwbAnchor.seen ? seenPaint : unseenPaint);
+
+        // flip y axis to draw text
+        if (!uwbAnchor.seen) {
+            canvas.scale(1/textScale, -1/textScale);
+            float height = unseenPaint.descent() - unseenPaint.ascent();
+            canvas.drawText(uwbAnchor.name,
+                    (uwbAnchor.position.x + 0.15f) * textScale,
+                    -uwbAnchor.position.y * textScale + height,
+                    unseenPaint);
+            canvas.scale(textScale, -textScale);
+        }
     }
 
     private void drawAP(AccessPoint accessPoint, Canvas canvas) {
         canvas.drawCircle(accessPoint.position.x, accessPoint.position.y, 0.15f,
                 accessPoint.seen ? seenPaint : unseenPaint);
+
+        // flip y axis to draw text
+        if (!accessPoint.seen) {
+            canvas.scale(1/textScale, -1/textScale);
+            canvas.drawText(accessPoint.name,
+                    accessPoint.position.x * textScale - unseenPaint.measureText(accessPoint.name),
+                    (-accessPoint.position.y - 0.15f) * textScale,
+                    unseenPaint);
+            canvas.scale(textScale, -textScale);
+        }
     }
 
     @Override
