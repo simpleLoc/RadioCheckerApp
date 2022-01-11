@@ -55,9 +55,11 @@ public class MapView extends View {
 
         unseenPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         unseenPaint.setColor(getResources().getColor(R.color.unseenColor, context.getTheme()));
+        unseenPaint.setTextSize(8);
 
         seenPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         seenPaint.setColor(getResources().getColor(R.color.seenColor, context.getTheme()));
+        seenPaint.setTextSize(8);
 
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 
@@ -138,7 +140,8 @@ public class MapView extends View {
                 p3.x, p3.y,
                 p0.x, p0.y
         };
-        canvas.drawLines(pts, wallPaint);
+        //canvas.drawLines(pts, wallPaint);
+        canvas.drawRect(p0.x, p0.y, p2.x, p2.y, wallPaint);
     }
 
     private void drawBeacon(Beacon beacon, Canvas canvas) {
@@ -159,6 +162,8 @@ public class MapView extends View {
         path.lineTo(p3.x, p3.y);
         path.close();
         canvas.drawPath(path, beacon.seen ? seenPaint : unseenPaint);
+
+        canvas.drawText(beacon.name, p0.x, p0.y, beacon.seen ? seenPaint : unseenPaint);
     }
 
     private void drawUWB(UWBAnchor uwbAnchor, Canvas canvas) {
