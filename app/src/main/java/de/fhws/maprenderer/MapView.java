@@ -74,6 +74,8 @@ public class MapView extends View {
 
     public void setMap(Map map) {
         this.map = map;
+        if (this.map == null) { return; }
+
         Optional<Floor> first = map.getFloors().values().stream().findFirst();
         floor = first.orElse(null);
         invalidate();
