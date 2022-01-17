@@ -1,4 +1,4 @@
-package de.fhws.radiochecker;
+package de.fhws.indoor.radiochecker;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -12,9 +12,10 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 
-import de.fhws.maprenderer.MapView;
-import de.fhws.xmlmapparser.Map;
-import de.fhws.xmlmapparser.XMLMapParser;
+import de.fhws.indoor.maprenderer.MapView;
+import de.fhws.indoor.xmlmapparser.Map;
+import de.fhws.indoor.xmlmapparser.XMLMapParser;
+import de.fhws.indoor.libsmartphonesensors.SensorManager;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String MAP_PREFERENCES_FLOOR = "FloorName";
 
     public static Map currentMap = null;
+    private SensorManager sensorManager = new SensorManager();
 
     ArrayAdapter<String> mFloorNameAdapter;
     private SharedPreferences mPrefs;
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         showMap();
+
     }
 
     private void showMap() {

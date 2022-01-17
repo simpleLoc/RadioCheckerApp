@@ -19,7 +19,7 @@
 
                 <TextView
                     android:id="@+id/textView_mapPath"
-                    android:layout_width="260dp"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="@string/map_path_preview_text" />
@@ -28,7 +28,6 @@
                     android:id="@+id/button_selectMap"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:text="@string/select_map_button_text" />
 
             </LinearLayout>
@@ -38,6 +37,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/reset_seen_button_text" />
+
+            <TextView
+                android:id="@+id/textView_UWBAnchorMacAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="UWB Anchor MAC Address" />
 
         </LinearLayout>
     </FrameLayout>

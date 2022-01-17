@@ -1,4 +1,4 @@
-package de.fhws.radiochecker;
+package de.fhws.indoor.radiochecker;
 
 import org.junit.Test;
 

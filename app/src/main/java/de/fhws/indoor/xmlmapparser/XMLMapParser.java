@@ -1,4 +1,4 @@
-package de.fhws.xmlmapparser;
+package de.fhws.indoor.xmlmapparser;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;

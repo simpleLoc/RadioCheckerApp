@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="de.fhws.xmlmapparser.MainActivity">
+    tools:context="de.fhws.indoor.xmlmapparser.MainActivity">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -23,7 +23,7 @@
 
         <view
             android:id="@+id/MapView"
-            class="de.fhws.maprenderer.MapView"
+            class="de.fhws.indoor.maprenderer.MapView"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
     </LinearLayout>

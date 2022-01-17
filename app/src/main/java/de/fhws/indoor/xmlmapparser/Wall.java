@@ -1,4 +1,4 @@
-package de.fhws.xmlmapparser;
+package de.fhws.indoor.xmlmapparser;
 
 public class Wall {
     public Vec2 p0 = new Vec2();

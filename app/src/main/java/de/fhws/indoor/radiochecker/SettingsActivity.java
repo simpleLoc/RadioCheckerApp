@@ -1,4 +1,4 @@
-package de.fhws.radiochecker;
+package de.fhws.indoor.radiochecker;
 
 import android.content.ContentResolver;
 import android.content.SharedPreferences;
@@ -16,8 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.FileNotFoundException;
 
-import de.fhws.radiochecker.MainActivity;
-import de.fhws.xmlmapparser.XMLMapParser;
+import de.fhws.indoor.xmlmapparser.XMLMapParser;
 
 public class SettingsActivity extends AppCompatActivity {
 

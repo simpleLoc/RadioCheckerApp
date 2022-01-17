@@ -1,4 +1,4 @@
-package de.fhws.xmlmapparser;
+package de.fhws.indoor.xmlmapparser;
 
 import java.util.HashMap;
 import java.util.Optional;

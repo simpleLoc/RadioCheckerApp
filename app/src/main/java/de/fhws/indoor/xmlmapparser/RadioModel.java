@@ -1,4 +1,4 @@
-package de.fhws.xmlmapparser;
+package de.fhws.indoor.xmlmapparser;
 
 public class RadioModel {
     public float txp;
