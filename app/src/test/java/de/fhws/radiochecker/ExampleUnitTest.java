@@ -1,4 +1,4 @@
-package de.fhws.xmlmapparser;
+package de.fhws.radiochecker;
 
 import org.junit.Test;
 

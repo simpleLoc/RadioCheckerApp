@@ -1,4 +1,4 @@
-package de.fhws.xmlmapparser;
+package de.fhws.radiochecker;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,6 +13,8 @@ import android.widget.Button;
 import android.widget.Spinner;
 
 import de.fhws.maprenderer.MapView;
+import de.fhws.xmlmapparser.Map;
+import de.fhws.xmlmapparser.XMLMapParser;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;

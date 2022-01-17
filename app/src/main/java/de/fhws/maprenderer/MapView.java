@@ -12,11 +12,11 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
+import de.fhws.radiochecker.R;
 import de.fhws.xmlmapparser.AccessPoint;
 import de.fhws.xmlmapparser.Beacon;
 import de.fhws.xmlmapparser.Floor;
 import de.fhws.xmlmapparser.Map;
-import de.fhws.xmlmapparser.R;
 import de.fhws.xmlmapparser.UWBAnchor;
 import de.fhws.xmlmapparser.Vec2;
 import de.fhws.xmlmapparser.Wall;
