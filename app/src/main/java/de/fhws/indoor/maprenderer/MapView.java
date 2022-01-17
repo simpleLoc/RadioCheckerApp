@@ -80,6 +80,7 @@ public class MapView extends View {
     }
 
     public void selectFloor(String name) {
+        if (map == null) { return; }
         floor = map.getFloors().getOrDefault(name, floor);
         invalidate();
     }

@@ -17,12 +17,13 @@ import de.fhws.indoor.xmlmapparser.Map;
 import de.fhws.indoor.xmlmapparser.XMLMapParser;
 import de.fhws.indoor.libsmartphonesensors.SensorManager;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+    public static final String MAP_URI = "map.xml";
     public static final String MAP_PREFERENCES = "MAP_PREFERENCES";
-    public static final String MAP_PREFERENCES_URI = "Uri";
     public static final String MAP_PREFERENCES_FLOOR = "FloorName";
 
     public static Map currentMap = null;
@@ -78,14 +79,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showMap() {
-        String mapUri = mPrefs.getString(MAP_PREFERENCES_URI, null);
-        if (currentMap == null && mapUri != null) {
-            XMLMapParser parser = new XMLMapParser();
-            try {
-                currentMap = parser.parse(getContentResolver().openInputStream(Uri.parse(mapUri)));
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+        XMLMapParser parser = new XMLMapParser();
+        try {
+            currentMap = parser.parse(getContentResolver().openInputStream(
+                    Uri.fromFile(new File(getExternalFilesDir(null), MAP_URI))));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
 
         MapView mapView = findViewById(R.id.MapView);

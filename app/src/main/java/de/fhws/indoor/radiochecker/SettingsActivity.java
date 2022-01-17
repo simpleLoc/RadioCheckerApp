@@ -14,7 +14,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import de.fhws.indoor.xmlmapparser.XMLMapParser;
 
@@ -22,22 +28,21 @@ public class SettingsActivity extends AppCompatActivity {
 
     ContentResolver mContentResolver = null;
 
-    private SharedPreferences mPrefs;
-
     ActivityResultLauncher<String> mGetContent = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override
                 public void onActivityResult(Uri uri) {
-                    TextView textViewMapPath = findViewById(R.id.textView_mapPath);
-                    textViewMapPath.setText(uri.getPath());
+                    Uri dst = Uri.fromFile(new File(getExternalFilesDir(null), MainActivity.MAP_URI));
                     try {
-                        SharedPreferences.Editor ed = mPrefs.edit();
-                        ed.putString(MainActivity.MAP_PREFERENCES_URI, uri.toString());
-                        ed.apply();
+                        copy(uri, dst);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
 
+                    try {
                         XMLMapParser parser = new XMLMapParser();
-                        MainActivity.currentMap = parser.parse(mContentResolver.openInputStream(uri));
+                        MainActivity.currentMap = parser.parse(mContentResolver.openInputStream(dst));
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -54,14 +59,7 @@ public class SettingsActivity extends AppCompatActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        mPrefs = getSharedPreferences(MainActivity.MAP_PREFERENCES, MODE_PRIVATE);
         mContentResolver = getContentResolver();
-
-        String mapUri = mPrefs.getString(MainActivity.MAP_PREFERENCES_URI, null);
-        if (mapUri != null) {
-            TextView textViewMapPath = findViewById(R.id.textView_mapPath);
-            textViewMapPath.setText(Uri.parse(mapUri).getPath());
-        }
 
         Button buttonSelectMap = findViewById(R.id.button_selectMap);
         buttonSelectMap.setOnClickListener(new View.OnClickListener() {
@@ -80,5 +78,18 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    public void copy(Uri src, Uri dst) throws IOException {
+        try (InputStream in = mContentResolver.openInputStream(src)) {
+            try (OutputStream out = mContentResolver.openOutputStream(dst)) {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            }
+        }
     }
 }
