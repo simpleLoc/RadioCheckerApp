@@ -1,10 +1,12 @@
 package de.fhws.indoor.radiochecker;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
@@ -12,6 +14,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 
+import de.fhws.indoor.libsmartphonesensors.SensorType;
 import de.fhws.indoor.maprenderer.MapView;
 import de.fhws.indoor.xmlmapparser.Map;
 import de.fhws.indoor.xmlmapparser.XMLMapParser;
@@ -25,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String MAP_URI = "map.xml";
     public static final String MAP_PREFERENCES = "MAP_PREFERENCES";
     public static final String MAP_PREFERENCES_FLOOR = "FloorName";
+    private static final long DEFAULT_WIFI_SCAN_INTERVAL = (Build.VERSION.SDK_INT == 28 ? 30 : 1);
 
     public static Map currentMap = null;
     private SensorManager sensorManager = new SensorManager();
@@ -39,15 +43,15 @@ public class MainActivity extends AppCompatActivity {
 
         mPrefs = getSharedPreferences(MAP_PREFERENCES, MODE_PRIVATE);
 
-        Button settingsButton = findViewById(R.id.button_settings);
-        settingsButton.setOnClickListener(view -> {
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivity(intent);
+        Button btnSettings = findViewById(R.id.btnSettings);
+        btnSettings.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
+            }
         });
 
-        mFloorNameAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_dropdown_item,
-                new ArrayList<>());
+        mFloorNameAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
 
         Spinner spinnerFloor = findViewById(R.id.spinner_selectFloor);
         spinnerFloor.setAdapter(mFloorNameAdapter);
@@ -65,17 +69,44 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onNothingSelected(AdapterView<?> adapterView) {
+            public void onNothingSelected(AdapterView<?> adapterView) {}
+        });
 
+        // setup sensorManager callbacks
+        sensorManager.addSensorListener((timestamp, sensorId, csv) -> {
+            if(currentMap == null) { return; }
+
+            if(sensorId == SensorType.IBEACON) {
+                currentMap.setSeenBeacon(csv.substring(0, 12));
+            } else if(sensorId == SensorType.WIFI) {
+                currentMap.setSeenWiFi(csv.substring(0, 12));
+            } else if(sensorId == SensorType.DECAWAVE_UWB) {
+                String[] segments = csv.split(";");
+                // skip initial 4 (x, y, z, quality) - then take every 3rd
+                for(int i = 4; i < segments.length; i += 3) {
+                    if(segments[i].length() == 4) { // short device id
+                        currentMap.setSeenUWB(segments[i]);
+                    }
+                }
             }
         });
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onStart() {
+        super.onStart();
         showMap();
+        setupSensors();
+    }
 
+    @Override
+    protected void onStop() {
+        super.onStop();
+        try {
+            sensorManager.stop(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void showMap() {
@@ -104,6 +135,30 @@ public class MainActivity extends AppCompatActivity {
         if (currentMap != null) {
             mFloorNameAdapter.clear();
             mFloorNameAdapter.addAll(currentMap.getFloors().keySet());
+        }
+    }
+
+    protected void setupSensors() {
+        try {
+            sensorManager.stop(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        SensorManager.Config config = new SensorManager.Config();
+        config.hasWifi = true;
+        config.hasBluetooth = true;
+        config.hasDecawaveUWB = true;
+        config.decawaveUWBTagMacAddress = preferences.getString("prefDecawaveUWBTagMacAddress", "");
+        config.wifiScanIntervalSec = Long.parseLong(preferences.getString("prefWifiScanIntervalMSec", Long.toString(DEFAULT_WIFI_SCAN_INTERVAL)));
+
+        try {
+            sensorManager.configure(this, config);
+            sensorManager.start(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+            //TODO: ui feedback?
         }
     }
 }
