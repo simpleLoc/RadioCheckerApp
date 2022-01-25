@@ -9,9 +9,9 @@ public class Floor {
     private String name;
 
     private final ArrayList<Wall> walls = new ArrayList<>();
-    private final HashMap<String, AccessPoint> accessPoints = new HashMap<>();
+    private final HashMap<MacAddress, AccessPoint> accessPoints = new HashMap<>();
     private final HashMap<String, UWBAnchor> uwbAnchors = new HashMap<>();
-    private final HashMap<String, Beacon> beacons = new HashMap<>();
+    private final HashMap<MacAddress, Beacon> beacons = new HashMap<>();
 
     public float getAtHeight() {
         return atHeight;
@@ -45,7 +45,7 @@ public class Floor {
         walls.add(w);
     }
 
-    public HashMap<String, AccessPoint> getAccessPoints() {
+    public HashMap<MacAddress, AccessPoint> getAccessPoints() {
         return accessPoints;
     }
 
@@ -58,10 +58,10 @@ public class Floor {
     }
 
     public void addUWB(UWBAnchor uwb) {
-        uwbAnchors.put(uwb.deviceId, uwb);
+        uwbAnchors.put(uwb.shortDeviceId, uwb);
     }
 
-    public HashMap<String, Beacon> getBeacons() {
+    public HashMap<MacAddress, Beacon> getBeacons() {
         return beacons;
     }
 

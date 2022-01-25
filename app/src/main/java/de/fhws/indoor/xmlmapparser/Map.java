@@ -20,7 +20,8 @@ public class Map {
         }
     }
 
-    public void setSeenBeacon(String mac) {
+    public void setSeenBeacon(String macStr) {
+        MacAddress mac = new MacAddress(macStr);
         Optional<Beacon> beacon = floors.values().stream()
                 .flatMap(floor -> floor.getBeacons().values().stream())
                 .filter(b -> b.mac.equals(mac)).findFirst();
@@ -34,7 +35,8 @@ public class Map {
         anchor.ifPresent(a -> a.seen = true);
     }
 
-    public void setSeenWiFi(String mac) {
+    public void setSeenWiFi(String macStr) {
+        MacAddress mac = new MacAddress(macStr);
         Optional<AccessPoint> ap = floors.values().stream()
                 .flatMap(floor -> floor.getAccessPoints().values().stream())
                 .filter(a -> a.mac.equals(mac)).findFirst();

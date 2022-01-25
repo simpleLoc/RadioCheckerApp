@@ -6,7 +6,7 @@ android {
     compileSdk 31
 
     defaultConfig {
-        applicationId "com.example.xmlmapparser"
+        applicationId "de.fhws.indoor.radiochecker"
         minSdk 29
         targetSdk 31
         versionCode 1

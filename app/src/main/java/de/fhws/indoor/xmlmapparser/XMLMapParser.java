@@ -102,7 +102,7 @@ public class XMLMapParser {
                     assert currentAP == null;
                     currentAP = new AccessPoint();
                     currentAP.name = attributes.getValue("name");
-                    currentAP.mac = attributes.getValue("mac");
+                    currentAP.mac = new MacAddress(attributes.getValue("mac"));
                     currentAP.position = parsePosition(attributes);
                     currentAP.mdl = parseRadioModel(attributes);
                     break;
@@ -112,7 +112,7 @@ public class XMLMapParser {
                     currentUWB = new UWBAnchor(
                             attributes.getValue("name"),
                             attributes.getValue("deviceId"),
-                            attributes.getValue("bleMac"),
+                            new MacAddress(attributes.getValue("bleMac")),
                             parsePosition(attributes));
                     break;
 
@@ -120,7 +120,7 @@ public class XMLMapParser {
                     assert currentBeacon == null;
                     currentBeacon = new Beacon();
                     currentBeacon.name = attributes.getValue("name");
-                    currentBeacon.mac = attributes.getValue("mac");
+                    currentBeacon.mac = new MacAddress(attributes.getValue("mac"));
                     currentBeacon.major = attributes.getValue("major");
                     currentBeacon.minor = attributes.getValue("minor");
                     currentBeacon.uuid = attributes.getValue("uuid");

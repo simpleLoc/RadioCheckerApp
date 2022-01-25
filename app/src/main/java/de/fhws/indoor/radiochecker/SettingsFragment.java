@@ -86,10 +86,10 @@ public class SettingsFragment extends PreferenceFragmentCompat {
 
     // To guarantee that the app still has access to the chosen map, we copy
     // it into the app's local storage path - where the app always has
-    // read accesss.
+    // read access.
     private void copyMapToAppStorage(Uri src, Uri dst) throws IOException {
         try (InputStream in = mContentResolver.openInputStream(src)) {
-            try (OutputStream out = mContentResolver.openOutputStream(dst)) {
+            try (OutputStream out = mContentResolver.openOutputStream(dst, "wt")) {
                 // Transfer bytes from in to out
                 byte[] buf = new byte[1024];
                 int len;

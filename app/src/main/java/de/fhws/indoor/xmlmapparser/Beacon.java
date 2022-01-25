@@ -2,7 +2,7 @@ package de.fhws.indoor.xmlmapparser;
 
 public class Beacon {
     public String name;
-    public String mac;
+    public MacAddress mac;
     public String major;
     public String minor;
     public String uuid;
