@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">XMLMapParser</string>
+    <string name="app_name">RadioChecker</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="settings_button_text">Settings</string>
     <string name="select_map_button_text">Select Map</string>

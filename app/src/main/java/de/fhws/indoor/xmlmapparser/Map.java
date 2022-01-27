@@ -1,6 +1,7 @@
 package de.fhws.indoor.xmlmapparser;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Optional;
 
 public class Map {
@@ -31,7 +32,7 @@ public class Map {
     public void setSeenUWB(String shortDeviceId) {
         Optional<UWBAnchor> anchor = floors.values().stream()
                 .flatMap(floor -> floor.getUwbAnchors().values().stream())
-                .filter(a -> a.shortDeviceId.equals(shortDeviceId)).findFirst();
+                .filter(a -> a.shortDeviceId.equalsIgnoreCase(shortDeviceId)).findFirst();
         anchor.ifPresent(a -> a.seen = true);
     }
 
