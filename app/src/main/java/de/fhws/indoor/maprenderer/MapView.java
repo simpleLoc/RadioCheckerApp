@@ -285,7 +285,7 @@ public class MapView extends View {
                     break;
                 }
                 case MotionEvent.ACTION_MOVE: {
-                    if (ptrID1 != INVALID_POINTER_ID && ptrID2 != INVALID_POINTER_ID) {
+                    if (ptrID1 != INVALID_POINTER_ID && ptrID2 != INVALID_POINTER_ID && ptrID1 != ptrID2) {
                         float nx2, ny2, nx1, ny1;
                         nx1 = event.getX(event.findPointerIndex(ptrID1));
                         ny1 = event.getY(event.findPointerIndex(ptrID1));
@@ -301,7 +301,7 @@ public class MapView extends View {
                         float ncx = (nx2 + nx1)/2, ncy = (ny2 + ny1)/2;
 
                         float rotation = angleBetweenLines(x1, y1, x2, y2, nx1, ny1, nx2, ny2);
-                        float scale = scaleBetweenLines(x1, y1, x2, y2, nx1, ny1, nx2, ny2);
+                        float scale = Math.max(0.01f, Math.min(10.0f, scaleBetweenLines(x1, y1, x2, y2, nx1, ny1, nx2, ny2)));
                         float dx = ncx - cx, dy = ncy - cy;
 
 
