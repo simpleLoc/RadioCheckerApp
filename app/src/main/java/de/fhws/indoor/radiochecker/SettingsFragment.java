@@ -71,7 +71,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
         v.addView(btnResetSeen);
         btnResetSeen.setOnClickListener(btn -> {
             if (MainActivity.currentMap != null) {
-                MainActivity.currentMap.resetSeen(false);
+                MainActivity.currentMap.resetSeen(true);
             }
         });
 

@@ -20,12 +20,14 @@ import de.fhws.indoor.libsmartphonesensors.SensorType;
 import de.fhws.indoor.libsmartphonesensors.sensors.DecawaveUWB;
 import de.fhws.indoor.maprenderer.MapView;
 import de.fhws.indoor.xmlmapparser.Map;
+import de.fhws.indoor.xmlmapparser.MapSeenSerializer;
 import de.fhws.indoor.xmlmapparser.XMLMapParser;
 import de.fhws.indoor.libsmartphonesensors.SensorManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -36,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long DEFAULT_WIFI_SCAN_INTERVAL = (Build.VERSION.SDK_INT == 28 ? 30 : 1);
 
     public static Map currentMap = null;
-    private SensorManager sensorManager = new SensorManager();
+    private final SensorManager sensorManager = new SensorManager();
     // sensorManager status
     private Timer sensorManagerStatisticsTimer;
     private volatile int loadCounterWifi = 0;
@@ -180,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             currentMap = parser.parse(getContentResolver().openInputStream(
                     Uri.fromFile(new File(getExternalFilesDir(null), MAP_URI))));
+            currentMap.setSerializer(new MapSeenSerializer(getApplicationContext()));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -200,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateFloorNames() {
         if (currentMap != null) {
             mFloorNameAdapter.clear();
-            mFloorNameAdapter.addAll(currentMap.getFloors().keySet());
+            currentMap.getFloors().keySet().stream().sorted().forEach(s -> mFloorNameAdapter.add(s));
         }
     }
 

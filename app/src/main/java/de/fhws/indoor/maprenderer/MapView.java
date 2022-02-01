@@ -67,6 +67,8 @@ public class MapView extends View {
         this.map = map;
         if (this.map == null) { return; }
 
+        this.map.addChangedListener(this::invalidate);
+
         Optional<Floor> first = map.getFloors().values().stream().findFirst();
         floor = first.orElse(null);
         invalidate();
