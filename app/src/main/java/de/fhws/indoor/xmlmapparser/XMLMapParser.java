@@ -1,7 +1,12 @@
 package de.fhws.indoor.xmlmapparser;
 
+import android.app.AlertDialog;
+import android.content.Context;
+
 import org.xml.sax.Attributes;
+import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import java.io.IOException;
@@ -12,6 +17,11 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 public class XMLMapParser {
+    private final Context context;
+
+    public XMLMapParser(Context context) {
+        this.context = context;
+    }
 
     public Map parse(final InputStream inputStream) {
         SAXParserFactory factory = SAXParserFactory.newInstance();
@@ -24,6 +34,17 @@ public class XMLMapParser {
             parser.parse(inputStream, handler);
             m = handler.getResult();
 
+        } catch (SAXParseException e) {
+            new AlertDialog.Builder(context)
+                    .setTitle("Parse Error")
+                    .setMessage(e.getMessage() + "\n" +
+                            "Line: " + e.getLineNumber() + "\n" +
+                            "Column: " + e.getColumnNumber())
+                    .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                        // do nothing
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
         } catch (SAXException e) {
             e.printStackTrace();
         } catch (ParserConfigurationException e) {
@@ -35,6 +56,7 @@ public class XMLMapParser {
     }
 
     private static class ParseHandler extends DefaultHandler {
+        private Locator locator;
         private final StringBuilder currentValue = new StringBuilder();
 
         private Map map = null;
@@ -46,6 +68,11 @@ public class XMLMapParser {
 
         public Map getResult() {
             return map;
+        }
+
+        @Override
+        public void setDocumentLocator(Locator locator) {
+            this.locator = locator;
         }
 
         @Override
@@ -63,73 +90,78 @@ public class XMLMapParser {
                 String uri,
                 String localName,
                 String qName,
-                Attributes attributes) {
+                Attributes attributes) throws SAXParseException {
 
             // reset the tag value
             currentValue.setLength(0);
 
             System.out.printf("Start Element : %s%n", qName);
 
-            switch (qName) {
-                case "map":
-                    assert map == null;
-                    map = new Map();
-                    // get tag's attribute by name
-                    String id = attributes.getValue("id");
-                    System.out.printf("Staff id : %s%n", id);
-                    break;
+            try {
 
-                case "floor":
-                    assert currentFloor == null;
-                    currentFloor = new Floor();
-                    currentFloor.setAtHeight(parseFloat(attributes, "atHeight"));
-                    currentFloor.setHeight(parseFloat(attributes, "height"));
-                    currentFloor.setName(attributes.getValue("name"));
-                    break;
+                switch (qName) {
+                    case "map":
+                        assert map == null;
+                        map = new Map();
+                        // get tag's attribute by name
+                        String id = attributes.getValue("id");
+                        System.out.printf("Staff id : %s%n", id);
+                        break;
 
-                case "wall":
-                case "line":
-                    assert currentWall == null;
-                    currentWall = new Wall();
-                    currentWall.p0.x = parseFloat(attributes, "x1");
-                    currentWall.p0.y = parseFloat(attributes, "y1");
-                    currentWall.p1.x = parseFloat(attributes, "x2");
-                    currentWall.p1.y = parseFloat(attributes, "y2");
-                    currentWall.thickness = parseFloat(attributes, "thickness");
-                    break;
+                    case "floor":
+                        assert currentFloor == null;
+                        currentFloor = new Floor();
+                        currentFloor.setAtHeight(parseFloat(attributes, "atHeight"));
+                        currentFloor.setHeight(parseFloat(attributes, "height"));
+                        currentFloor.setName(attributes.getValue("name"));
+                        break;
 
-                case "accesspoint":
-                    assert currentAP == null;
-                    currentAP = new AccessPoint();
-                    currentAP.name = attributes.getValue("name");
-                    currentAP.mac = new MacAddress(attributes.getValue("mac"));
-                    currentAP.position = parsePosition(attributes);
-                    currentAP.mdl = parseRadioModel(attributes);
-                    break;
+                    case "wall":
+                    case "line":
+                        assert currentWall == null;
+                        currentWall = new Wall();
+                        currentWall.p0.x = parseFloat(attributes, "x1");
+                        currentWall.p0.y = parseFloat(attributes, "y1");
+                        currentWall.p1.x = parseFloat(attributes, "x2");
+                        currentWall.p1.y = parseFloat(attributes, "y2");
+                        currentWall.thickness = parseFloat(attributes, "thickness");
+                        break;
 
-                case "uwbanchor":
-                    assert currentUWB == null;
-                    currentUWB = new UWBAnchor(
-                            attributes.getValue("name"),
-                            attributes.getValue("deviceId"),
-                            new MacAddress(attributes.getValue("bleMac")),
-                            parsePosition(attributes));
-                    break;
+                    case "accesspoint":
+                        assert currentAP == null;
+                        currentAP = new AccessPoint();
+                        currentAP.name = attributes.getValue("name");
+                        currentAP.mac = new MacAddress(attributes.getValue("mac"));
+                        currentAP.position = parsePosition(attributes);
+                        currentAP.mdl = parseRadioModel(attributes);
+                        break;
 
-                case "beacon":
-                    assert currentBeacon == null;
-                    currentBeacon = new Beacon();
-                    currentBeacon.name = attributes.getValue("name");
-                    currentBeacon.mac = new MacAddress(attributes.getValue("mac"));
-                    currentBeacon.major = attributes.getValue("major");
-                    currentBeacon.minor = attributes.getValue("minor");
-                    currentBeacon.uuid = attributes.getValue("uuid");
-                    currentBeacon.position = parsePosition(attributes);
-                    currentBeacon.mdl = parseRadioModel(attributes);
-                    break;
+                    case "uwbanchor":
+                        assert currentUWB == null;
+                        currentUWB = new UWBAnchor(
+                                attributes.getValue("name"),
+                                attributes.getValue("deviceId"),
+                                new MacAddress(attributes.getValue("bleMac")),
+                                parsePosition(attributes));
+                        break;
 
-                default:
-                    break;
+                    case "beacon":
+                        assert currentBeacon == null;
+                        currentBeacon = new Beacon();
+                        currentBeacon.name = attributes.getValue("name");
+                        currentBeacon.mac = new MacAddress(attributes.getValue("mac"));
+                        currentBeacon.major = attributes.getValue("major");
+                        currentBeacon.minor = attributes.getValue("minor");
+                        currentBeacon.uuid = attributes.getValue("uuid");
+                        currentBeacon.position = parsePosition(attributes);
+                        currentBeacon.mdl = parseRadioModel(attributes);
+                        break;
+
+                    default:
+                        break;
+                }
+            } catch (Exception e) {
+                throw new SAXParseException(e.getMessage(), locator);
             }
         }
 

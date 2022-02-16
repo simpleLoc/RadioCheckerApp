@@ -44,7 +44,7 @@ public class SettingsFragment extends PreferenceFragmentCompat {
                 }
 
                 try {
-                    XMLMapParser parser = new XMLMapParser();
+                    XMLMapParser parser = new XMLMapParser(getContext());
                     MainActivity.currentMap = parser.parse(mContentResolver.openInputStream(dst));
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();

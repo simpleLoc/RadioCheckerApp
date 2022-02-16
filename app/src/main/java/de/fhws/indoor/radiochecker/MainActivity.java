@@ -178,13 +178,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showMap() {
-        XMLMapParser parser = new XMLMapParser();
+        XMLMapParser parser = new XMLMapParser(this);
         try {
             currentMap = parser.parse(getContentResolver().openInputStream(
                     Uri.fromFile(new File(getExternalFilesDir(null), MAP_URI))));
-            currentMap.setSerializer(new MapSeenSerializer(getApplicationContext()));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+        }
+
+        if (currentMap != null) {
+            currentMap.setSerializer(new MapSeenSerializer(getApplicationContext()));
         }
 
         MapView mapView = findViewById(R.id.MapView);
