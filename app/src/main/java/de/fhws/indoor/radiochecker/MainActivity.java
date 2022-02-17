@@ -8,7 +8,6 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -16,20 +15,22 @@ import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import de.fhws.indoor.libsmartphoneindoormap.renderer.ColorScheme;
 import de.fhws.indoor.libsmartphonesensors.SensorType;
 import de.fhws.indoor.libsmartphonesensors.sensors.DecawaveUWB;
-import de.fhws.indoor.maprenderer.MapView;
-import de.fhws.indoor.xmlmapparser.Map;
-import de.fhws.indoor.xmlmapparser.MapSeenSerializer;
-import de.fhws.indoor.xmlmapparser.XMLMapParser;
+import de.fhws.indoor.libsmartphoneindoormap.renderer.MapView;
+import de.fhws.indoor.libsmartphoneindoormap.model.Map;
+import de.fhws.indoor.libsmartphoneindoormap.parser.MapSeenSerializer;
+import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
 import de.fhws.indoor.libsmartphonesensors.SensorManager;
+import de.fhws.indoor.libsmartphonesensors.sensors.WiFi;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MainActivity extends AppCompatActivity {
     public static final String MAP_URI = "map.xml";
@@ -37,45 +38,48 @@ public class MainActivity extends AppCompatActivity {
     public static final String MAP_PREFERENCES_FLOOR = "FloorName";
     private static final long DEFAULT_WIFI_SCAN_INTERVAL = (Build.VERSION.SDK_INT == 28 ? 30 : 1);
 
+    private MapView mapView = null;
     public static Map currentMap = null;
     private final SensorManager sensorManager = new SensorManager();
     // sensorManager status
     private Timer sensorManagerStatisticsTimer;
-    private volatile int loadCounterWifi = 0;
-    private volatile int loadCounterWifiRTT = 0;
-    private volatile int loadCounterBeacon = 0;
-    private volatile int loadCounterGPS = 0;
-    private volatile int loadCounterUWB = 0;
+    private AtomicLong loadCounterWifi = new AtomicLong(0);
+    private AtomicLong loadCounterWifiRTT = new AtomicLong(0);
+    private AtomicLong loadCounterBeacon = new AtomicLong(0);
+    private AtomicLong loadCounterGPS = new AtomicLong(0);
+    private AtomicLong loadCounterUWB = new AtomicLong(0);
 
     ArrayAdapter<String> mFloorNameAdapter;
     private SharedPreferences mPrefs;
 
     private void resetSensorStatistics() {
-        loadCounterWifi = 0;
-        loadCounterWifiRTT = 0;
-        loadCounterBeacon = 0;
-        loadCounterGPS = 0;
-        loadCounterUWB = 0;
+        loadCounterWifi.set(0);
+        loadCounterWifiRTT.set(0);
+        loadCounterBeacon.set(0);
+        loadCounterGPS.set(0);
+        loadCounterUWB.set(0);
     }
     private String makeStatusString(long evtCnt) {
         return (evtCnt == 0) ? "-" : Long.toString(evtCnt);
     }
     private void updateSensorStatistics() {
         runOnUiThread(() -> {
+            WiFi wifiSensor = sensorManager.getSensor(WiFi.class);
+
             final TextView txtWifi = (TextView) findViewById(R.id.txtEvtCntWifi);
-            txtWifi.setText(makeStatusString(loadCounterWifi));
+            txtWifi.setText(makeStatusString(loadCounterWifi.get()) + " | " + wifiSensor.getScanResultCount());
             final TextView txtWifiRTT = (TextView) findViewById(R.id.txtEvtCntWifiRTT);
-            txtWifiRTT.setText(makeStatusString(loadCounterWifiRTT));
+            txtWifiRTT.setText(makeStatusString(loadCounterWifiRTT.get()));
             final TextView txtBeacon = (TextView) findViewById(R.id.txtEvtCntBeacon);
-            txtBeacon.setText(makeStatusString(loadCounterBeacon));
+            txtBeacon.setText(makeStatusString(loadCounterBeacon.get()));
             final TextView txtGPS = (TextView) findViewById(R.id.txtEvtCntGPS);
 
-            txtGPS.setText(makeStatusString(loadCounterGPS));
+            txtGPS.setText(makeStatusString(loadCounterGPS.get()));
             final TextView txtUWB = (TextView) findViewById(R.id.txtEvtCntUWB);
             DecawaveUWB sensorUWB = sensorManager.getSensor(DecawaveUWB.class);
             if(sensorUWB != null) {
                 if(sensorUWB.isConnectedToTag()) {
-                    txtUWB.setText(makeStatusString(loadCounterUWB));
+                    txtUWB.setText(makeStatusString(loadCounterUWB.get()));
                 } else {
                     txtUWB.setText(sensorUWB.isCurrentlyConnecting() ? "⌛" : "✖");
                 }
@@ -88,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mapView = findViewById(R.id.MapView);
+        mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor));
         mPrefs = getSharedPreferences(MAP_PREFERENCES, MODE_PRIVATE);
 
         Button btnSettings = findViewById(R.id.btnSettings);
@@ -111,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
                 ed.putString(MAP_PREFERENCES_FLOOR, floorName);
                 ed.apply();
 
-                MapView mapView = findViewById(R.id.MapView);
                 mapView.selectFloor(floorName);
             }
 
@@ -144,11 +149,11 @@ public class MainActivity extends AppCompatActivity {
         //register sensorManager listener for statistics UI
         sensorManager.addSensorListener((timestamp, id, csv) -> {
             // update UI for WIFI/BEACON/GPS
-            if(id == SensorType.WIFI) { runOnUiThread(() -> loadCounterWifi++); }
-            if(id == SensorType.WIFIRTT) { runOnUiThread(() -> loadCounterWifiRTT++); }
-            if(id == SensorType.IBEACON) { runOnUiThread(() -> loadCounterBeacon++); }
-            if(id == SensorType.GPS) { runOnUiThread(() -> loadCounterGPS++); }
-            if(id == SensorType.DECAWAVE_UWB) { runOnUiThread(() -> loadCounterUWB++); }
+            if(id == SensorType.WIFI) { runOnUiThread(() -> loadCounterWifi.incrementAndGet()); }
+            if(id == SensorType.WIFIRTT) { runOnUiThread(() -> loadCounterWifiRTT.incrementAndGet()); }
+            if(id == SensorType.IBEACON) { runOnUiThread(() -> loadCounterBeacon.incrementAndGet()); }
+            if(id == SensorType.GPS) { runOnUiThread(() -> loadCounterGPS.incrementAndGet()); }
+            if(id == SensorType.DECAWAVE_UWB) { runOnUiThread(() -> loadCounterUWB.incrementAndGet()); }
         });
 
         sensorManagerStatisticsTimer = new Timer();
@@ -190,7 +195,6 @@ public class MainActivity extends AppCompatActivity {
             currentMap.setSerializer(new MapSeenSerializer(getApplicationContext()));
         }
 
-        MapView mapView = findViewById(R.id.MapView);
         mapView.setMap(currentMap);
         updateFloorNames();
 

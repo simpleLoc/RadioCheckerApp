@@ -21,9 +21,8 @@
             android:layout_width="match_parent"
             android:layout_height="48dp" />
 
-        <view
+        <de.fhws.indoor.libsmartphoneindoormap.renderer.MapView
             android:id="@+id/MapView"
-            class="de.fhws.indoor.maprenderer.MapView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"/>

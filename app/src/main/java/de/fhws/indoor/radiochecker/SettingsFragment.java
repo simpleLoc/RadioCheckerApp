@@ -9,12 +9,10 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
 import java.io.File;
@@ -22,10 +20,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.HashSet;
-import java.util.Set;
 
-import de.fhws.indoor.xmlmapparser.XMLMapParser;
+import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
 
 /**
  * @author Markus Ebner
