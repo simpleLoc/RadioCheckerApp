@@ -39,6 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private static final long DEFAULT_WIFI_SCAN_INTERVAL = (Build.VERSION.SDK_INT == 28 ? 30 : 1);
 
     private MapView mapView = null;
+    private MapView.ViewConfig mapViewConfig = new MapView.ViewConfig();
     public static Map currentMap = null;
     private final SensorManager sensorManager = new SensorManager();
     // sensorManager status
@@ -65,9 +66,10 @@ public class MainActivity extends AppCompatActivity {
     private void updateSensorStatistics() {
         runOnUiThread(() -> {
             WiFi wifiSensor = sensorManager.getSensor(WiFi.class);
+            long wifiScanResultCnt = (wifiSensor == null) ? 0 : wifiSensor.getScanResultCount();
 
             final TextView txtWifi = (TextView) findViewById(R.id.txtEvtCntWifi);
-            txtWifi.setText(makeStatusString(loadCounterWifi.get()) + " | " + wifiSensor.getScanResultCount());
+            txtWifi.setText(makeStatusString(loadCounterWifi.get()) + " | " + wifiScanResultCnt);
             final TextView txtWifiRTT = (TextView) findViewById(R.id.txtEvtCntWifiRTT);
             txtWifiRTT.setText(makeStatusString(loadCounterWifiRTT.get()));
             final TextView txtBeacon = (TextView) findViewById(R.id.txtEvtCntBeacon);
@@ -95,6 +97,29 @@ public class MainActivity extends AppCompatActivity {
         mapView = findViewById(R.id.MapView);
         mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor));
         mPrefs = getSharedPreferences(MAP_PREFERENCES, MODE_PRIVATE);
+
+        TextView lblCntBeacon = findViewById(R.id.lblCntBeacon);
+        lblCntBeacon.setOnClickListener((view) -> {
+            mapViewConfig.showBluetooth = !mapViewConfig.showBluetooth;
+            mapView.setViewConfig(mapViewConfig);
+            lblCntBeacon.setTextColor(getResources().getColor(((mapViewConfig.showBluetooth) ? R.color.white : R.color.unseenColor), getTheme()));
+        });
+        TextView lblCntUWB = findViewById(R.id.lblCntUWB);
+        lblCntUWB.setOnClickListener((view) -> {
+            mapViewConfig.showUWB = !mapViewConfig.showUWB;
+            mapView.setViewConfig(mapViewConfig);
+            lblCntUWB.setTextColor(getResources().getColor(((mapViewConfig.showUWB) ? R.color.white : R.color.unseenColor), getTheme()));
+        });
+        TextView lblCntWifi = findViewById(R.id.lblCntWifi);
+        TextView lblCntWifiRTT = findViewById(R.id.lblCntWifiRTT);
+        View.OnClickListener wifiClickListener = (view) -> {
+            mapViewConfig.showWiFi = !mapViewConfig.showWiFi;
+            mapView.setViewConfig(mapViewConfig);
+            lblCntWifi.setTextColor(getResources().getColor(((mapViewConfig.showWiFi) ? R.color.white : R.color.unseenColor), getTheme()));
+            lblCntWifiRTT.setTextColor(getResources().getColor(((mapViewConfig.showWiFi) ? R.color.white : R.color.unseenColor), getTheme()));
+        };
+        lblCntWifi.setOnClickListener(wifiClickListener);
+        lblCntWifiRTT.setOnClickListener(wifiClickListener);
 
         Button btnSettings = findViewById(R.id.btnSettings);
         btnSettings.setOnClickListener(new View.OnClickListener() {
@@ -132,6 +157,8 @@ public class MainActivity extends AppCompatActivity {
                 currentMap.setSeenBeacon(csv.substring(0, 12));
             } else if(sensorId == SensorType.WIFI) {
                 currentMap.setSeenWiFi(csv.substring(0, 12));
+            } else if(sensorId == SensorType.WIFIRTT) {
+                currentMap.setSeenFtm(csv.substring(0, 12));
             } else if(sensorId == SensorType.DECAWAVE_UWB) {
                 String[] segments = csv.split(";");
                 // skip initial 4 (x, y, z, quality) - then take every 3rd
@@ -149,11 +176,11 @@ public class MainActivity extends AppCompatActivity {
         //register sensorManager listener for statistics UI
         sensorManager.addSensorListener((timestamp, id, csv) -> {
             // update UI for WIFI/BEACON/GPS
-            if(id == SensorType.WIFI) { runOnUiThread(() -> loadCounterWifi.incrementAndGet()); }
-            if(id == SensorType.WIFIRTT) { runOnUiThread(() -> loadCounterWifiRTT.incrementAndGet()); }
-            if(id == SensorType.IBEACON) { runOnUiThread(() -> loadCounterBeacon.incrementAndGet()); }
-            if(id == SensorType.GPS) { runOnUiThread(() -> loadCounterGPS.incrementAndGet()); }
-            if(id == SensorType.DECAWAVE_UWB) { runOnUiThread(() -> loadCounterUWB.incrementAndGet()); }
+            if(id == SensorType.WIFI) { loadCounterWifi.incrementAndGet(); }
+            if(id == SensorType.WIFIRTT) { loadCounterWifiRTT.incrementAndGet(); }
+            if(id == SensorType.IBEACON) { loadCounterBeacon.incrementAndGet(); }
+            if(id == SensorType.GPS) { loadCounterGPS.incrementAndGet(); }
+            if(id == SensorType.DECAWAVE_UWB) { loadCounterUWB.incrementAndGet(); }
         });
 
         sensorManagerStatisticsTimer = new Timer();
@@ -225,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
 
         SensorManager.Config config = new SensorManager.Config();
         config.hasWifi = true;
+        config.hasWifiRTT = true;
         config.hasBluetooth = true;
         config.hasDecawaveUWB = true;
         config.decawaveUWBTagMacAddress = preferences.getString("prefDecawaveUWBTagMacAddress", "");
