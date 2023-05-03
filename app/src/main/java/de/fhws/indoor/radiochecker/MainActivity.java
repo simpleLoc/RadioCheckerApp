@@ -24,6 +24,7 @@ import de.fhws.indoor.libsmartphoneindoormap.parser.MapSeenSerializer;
 import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
 import de.fhws.indoor.libsmartphonesensors.SensorManager;
 import de.fhws.indoor.libsmartphonesensors.sensors.WiFi;
+import de.fhws.indoor.libsmartphonesensors.util.MultiPermissionRequester;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -158,7 +159,8 @@ public class MainActivity extends AppCompatActivity {
             } else if(sensorId == SensorType.WIFI) {
                 currentMap.setSeenWiFi(csv.substring(0, 12));
             } else if(sensorId == SensorType.WIFIRTT) {
-                currentMap.setSeenFtm(csv.substring(0, 12));
+                String macStr = CsvHelper.getParameter(csv, ';', 1);
+                currentMap.setSeenFtm(macStr);
             } else if(sensorId == SensorType.DECAWAVE_UWB) {
                 String[] segments = csv.split(";");
                 // skip initial 4 (x, y, z, quality) - then take every 3rd
@@ -256,11 +258,20 @@ public class MainActivity extends AppCompatActivity {
         config.hasBluetooth = true;
         config.hasDecawaveUWB = true;
         config.decawaveUWBTagMacAddress = preferences.getString("prefDecawaveUWBTagMacAddress", "");
-        config.wifiScanIntervalSec = Long.parseLong(preferences.getString("prefWifiScanIntervalMSec", Long.toString(DEFAULT_WIFI_SCAN_INTERVAL)));
+        config.wifiScanIntervalMSec = Long.parseLong(preferences.getString("prefWifiScanIntervalMSec", Long.toString(DEFAULT_WIFI_SCAN_INTERVAL)));
+        config.ftmBurstSize = 0;
 
         try {
-            sensorManager.configure(this, config);
-            sensorManager.start(this);
+            MultiPermissionRequester permissionRequester = new MultiPermissionRequester(this);
+            sensorManager.configure(this, config, permissionRequester);
+            permissionRequester.setSuccessListener(() -> {
+                try {
+                    sensorManager.start(this);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            permissionRequester.launch();
         } catch (Exception e) {
             e.printStackTrace();
             //TODO: ui feedback?
