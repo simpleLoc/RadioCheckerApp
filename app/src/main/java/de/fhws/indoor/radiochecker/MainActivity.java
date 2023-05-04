@@ -16,6 +16,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import de.fhws.indoor.libsmartphoneindoormap.renderer.ColorScheme;
+import de.fhws.indoor.libsmartphonesensors.SensorDataInterface;
 import de.fhws.indoor.libsmartphonesensors.SensorType;
 import de.fhws.indoor.libsmartphonesensors.sensors.DecawaveUWB;
 import de.fhws.indoor.libsmartphoneindoormap.renderer.MapView;
@@ -28,6 +29,8 @@ import de.fhws.indoor.libsmartphonesensors.util.MultiPermissionRequester;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -42,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private MapView mapView = null;
     private MapView.ViewConfig mapViewConfig = new MapView.ViewConfig();
     public static Map currentMap = null;
-    private final SensorManager sensorManager = new SensorManager();
+    private SensorManager sensorManager;
     // sensorManager status
     private Timer sensorManagerStatisticsTimer;
     private AtomicLong loadCounterWifi = new AtomicLong(0);
@@ -96,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         mapView = findViewById(R.id.MapView);
-        mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor));
+        mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor, R.color.selectedColor));
         mPrefs = getSharedPreferences(MAP_PREFERENCES, MODE_PRIVATE);
 
         TextView lblCntBeacon = findViewById(R.id.lblCntBeacon);
@@ -150,39 +153,46 @@ public class MainActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> adapterView) {}
         });
 
-        // setup sensorManager callbacks
-        sensorManager.addSensorListener((timestamp, sensorId, csv) -> {
-            if(currentMap == null) { return; }
+        //configure sensorManager
+        sensorManager = new SensorManager(new SensorDataInterface() {
+            @Override
+            public long getStartTimestamp() { return 0; }
 
-            if(sensorId == SensorType.IBEACON) {
-                currentMap.setSeenBeacon(csv.substring(0, 12));
-            } else if(sensorId == SensorType.WIFI) {
-                currentMap.setSeenWiFi(csv.substring(0, 12));
-            } else if(sensorId == SensorType.WIFIRTT) {
-                String macStr = CsvHelper.getParameter(csv, ';', 1);
-                currentMap.setSeenFtm(macStr);
-            } else if(sensorId == SensorType.DECAWAVE_UWB) {
-                String[] segments = csv.split(";");
-                // skip initial 4 (x, y, z, quality) - then take every 3rd
-                for(int i = 4; i < segments.length; i += 3) {
-                    int shortDeviceId = Integer.parseInt(segments[i]);
-                    // shortDeviceId is a uint16
-                    if(shortDeviceId >= 0 && shortDeviceId <= 65535) {
-                        String shortDeviceIdStr = String.format("%04X", shortDeviceId);
-                        currentMap.setSeenUWB(shortDeviceIdStr);
+            @Override
+            public void onData(long timestamp, SensorType sensorId, String csv) {
+                if(currentMap == null) { return; }
+
+                if(sensorId == SensorType.IBEACON) {
+                    currentMap.setSeenBeacon(csv.substring(0, 12));
+                    loadCounterBeacon.incrementAndGet();
+                } else if(sensorId == SensorType.WIFI) {
+                    currentMap.setSeenWiFi(csv.substring(0, 12));
+                    loadCounterWifi.incrementAndGet();
+                } else if(sensorId == SensorType.WIFIRTT) {
+                    String macStr = CsvHelper.getParameter(csv, ';', 1);
+                    loadCounterWifiRTT.incrementAndGet();
+                    currentMap.setSeenFtm(macStr);
+                } else if(sensorId == SensorType.DECAWAVE_UWB) {
+                    String[] segments = csv.split(";");
+                    // skip initial 4 (x, y, z, quality) - then take every 3rd
+                    for(int i = 4; i < segments.length; i += 3) {
+                        int shortDeviceId = Integer.parseInt(segments[i]);
+                        // shortDeviceId is a uint16
+                        if(shortDeviceId >= 0 && shortDeviceId <= 65535) {
+                            String shortDeviceIdStr = String.format("%04X", shortDeviceId);
+                            currentMap.setSeenUWB(shortDeviceIdStr);
+                        }
                     }
+                    loadCounterUWB.incrementAndGet();
+                } else if(sensorId == SensorType.GPS) {
+                    loadCounterGPS.incrementAndGet();
                 }
             }
-        });
 
-        //register sensorManager listener for statistics UI
-        sensorManager.addSensorListener((timestamp, id, csv) -> {
-            // update UI for WIFI/BEACON/GPS
-            if(id == SensorType.WIFI) { loadCounterWifi.incrementAndGet(); }
-            if(id == SensorType.WIFIRTT) { loadCounterWifiRTT.incrementAndGet(); }
-            if(id == SensorType.IBEACON) { loadCounterBeacon.incrementAndGet(); }
-            if(id == SensorType.GPS) { loadCounterGPS.incrementAndGet(); }
-            if(id == SensorType.DECAWAVE_UWB) { loadCounterUWB.incrementAndGet(); }
+            @Override
+            public OutputStream requestAuxiliaryChannel(String id) throws IOException {
+                return null;
+            }
         });
 
         sensorManagerStatisticsTimer = new Timer();
