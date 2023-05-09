@@ -50,7 +50,6 @@ public class MainActivity extends AppCompatActivity {
     private MapView.ViewConfig mapViewConfig = new MapView.ViewConfig();
     public static Map currentMap = null;
     private SensorManager sensorManager;
-    MultiPermissionRequester permissionRequester = new MultiPermissionRequester(this);
     // sensorManager status
     private Timer sensorManagerStatisticsTimer;
     private AtomicLong loadCounterWifi = new AtomicLong(0);
@@ -93,6 +92,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        MultiPermissionRequester.init(this);
 
         mapView = findViewById(R.id.MapView);
         mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor, R.color.selectedColor));
@@ -205,7 +206,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        Toast.makeText(this, "SensorManager stopped", Toast.LENGTH_SHORT).show();
     }
 
     private void showMap() {
@@ -260,18 +260,16 @@ public class MainActivity extends AppCompatActivity {
         config.ftmBurstSize = 0;
 
         try {
-            sensorManager.configure(this, config, permissionRequester);
-            permissionRequester.setSuccessListener(() -> {
+            sensorManager.configure(this, config);
+            MultiPermissionRequester.get().launch(() -> {
                 try {
                     Log.i("RadioChecker", "Starting SensorManager");
                     sensorManager.start(this);
-                    Toast.makeText(this, "SensorManager started", Toast.LENGTH_SHORT).show();
                 } catch (Throwable e) {
                     Toast.makeText(this, "Failed to start SensorManager", Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
             });
-            permissionRequester.launch();
         } catch (Exception e) {
             Toast.makeText(this, "Failed to configure SensorManager", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
