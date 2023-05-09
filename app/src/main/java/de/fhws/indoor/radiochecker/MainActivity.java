@@ -8,12 +8,14 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import de.fhws.indoor.libsmartphoneindoormap.renderer.ColorScheme;
 import de.fhws.indoor.libsmartphonesensors.SensorDataInterface;
@@ -26,6 +28,7 @@ import de.fhws.indoor.libsmartphoneindoormap.parser.MapSeenSerializer;
 import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
 import de.fhws.indoor.libsmartphonesensors.SensorManager;
 import de.fhws.indoor.libsmartphonesensors.sensors.WiFi;
+import de.fhws.indoor.libsmartphonesensors.ui.EventCounterView;
 import de.fhws.indoor.libsmartphonesensors.util.MultiPermissionRequester;
 
 import java.io.File;
@@ -47,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private MapView.ViewConfig mapViewConfig = new MapView.ViewConfig();
     public static Map currentMap = null;
     private SensorManager sensorManager;
+    MultiPermissionRequester permissionRequester = new MultiPermissionRequester(this);
     // sensorManager status
     private Timer sensorManagerStatisticsTimer;
     private AtomicLong loadCounterWifi = new AtomicLong(0);
@@ -70,27 +74,18 @@ public class MainActivity extends AppCompatActivity {
     }
     private void updateSensorStatistics() {
         runOnUiThread(() -> {
-            WiFi wifiSensor = sensorManager.getSensor(WiFi.class);
-            long wifiScanResultCnt = (wifiSensor == null) ? 0 : wifiSensor.getScanResultCount();
-
-            final TextView txtWifi = (TextView) findViewById(R.id.txtEvtCntWifi);
-            txtWifi.setText(makeStatusString(loadCounterWifi.get()) + " | " + wifiScanResultCnt);
-            final TextView txtWifiRTT = (TextView) findViewById(R.id.txtEvtCntWifiRTT);
-            txtWifiRTT.setText(makeStatusString(loadCounterWifiRTT.get()));
-            final TextView txtBeacon = (TextView) findViewById(R.id.txtEvtCntBeacon);
-            txtBeacon.setText(makeStatusString(loadCounterBeacon.get()));
-            final TextView txtGPS = (TextView) findViewById(R.id.txtEvtCntGPS);
-
-            txtGPS.setText(makeStatusString(loadCounterGPS.get()));
-            final TextView txtUWB = (TextView) findViewById(R.id.txtEvtCntUWB);
-            DecawaveUWB sensorUWB = sensorManager.getSensor(DecawaveUWB.class);
-            if(sensorUWB != null) {
-                if(sensorUWB.isConnectedToTag()) {
-                    txtUWB.setText(makeStatusString(loadCounterUWB.get()));
-                } else {
-                    txtUWB.setText(sensorUWB.isCurrentlyConnecting() ? "⌛" : "✖");
-                }
-            }
+            EventCounterView evtCounterView = findViewById(R.id.event_counter_view);
+            evtCounterView.updateCounterData(counterData -> {
+                DecawaveUWB sensorUWB = sensorManager.getSensor(DecawaveUWB.class);
+                WiFi sensorWifi = sensorManager.getSensor(WiFi.class);
+                counterData.wifiEvtCnt = loadCounterWifi.get();
+                counterData.wifiScanCnt = (sensorWifi != null) ? sensorWifi.getScanResultCount() : 0;
+                counterData.bleEvtCnt = loadCounterBeacon.get();
+                counterData.ftmEvtCnt = loadCounterWifiRTT.get();
+                counterData.gpsEvtCnt = loadCounterGPS.get();
+                counterData.uwbEvtCnt = loadCounterUWB.get();
+                counterData.uwbState = EventCounterView.UWBState.from(sensorUWB);
+            });
         });
     }
 
@@ -103,36 +98,25 @@ public class MainActivity extends AppCompatActivity {
         mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor, R.color.selectedColor));
         mPrefs = getSharedPreferences(MAP_PREFERENCES, MODE_PRIVATE);
 
-        TextView lblCntBeacon = findViewById(R.id.lblCntBeacon);
-        lblCntBeacon.setOnClickListener((view) -> {
-            mapViewConfig.showBluetooth = !mapViewConfig.showBluetooth;
+        // configure event counter view
+        EventCounterView eventCounterView = findViewById(R.id.event_counter_view);
+        eventCounterView.setClickable(true);
+        eventCounterView.setActiveDataChangedCallback(activeData -> {
+            mapViewConfig.showBluetooth = activeData.ble;
+            mapViewConfig.showUWB = activeData.uwb;
+            if(mapViewConfig.showWiFi != activeData.wifi) { activeData.ftm = activeData.wifi; }
+            else if(mapViewConfig.showWiFi != activeData.ftm) { activeData.wifi = activeData.ftm; }
+            mapViewConfig.showWiFi = activeData.wifi;
+            activeData.gps = true;
             mapView.setViewConfig(mapViewConfig);
-            lblCntBeacon.setTextColor(getResources().getColor(((mapViewConfig.showBluetooth) ? R.color.white : R.color.unseenColor), getTheme()));
         });
-        TextView lblCntUWB = findViewById(R.id.lblCntUWB);
-        lblCntUWB.setOnClickListener((view) -> {
-            mapViewConfig.showUWB = !mapViewConfig.showUWB;
-            mapView.setViewConfig(mapViewConfig);
-            lblCntUWB.setTextColor(getResources().getColor(((mapViewConfig.showUWB) ? R.color.white : R.color.unseenColor), getTheme()));
+        eventCounterView.updateActiveData(true, activeData -> {
+            activeData.uwb = false; activeData.ble = false; activeData.wifi = false; activeData.ftm = false; activeData.gps = true;
         });
-        TextView lblCntWifi = findViewById(R.id.lblCntWifi);
-        TextView lblCntWifiRTT = findViewById(R.id.lblCntWifiRTT);
-        View.OnClickListener wifiClickListener = (view) -> {
-            mapViewConfig.showWiFi = !mapViewConfig.showWiFi;
-            mapView.setViewConfig(mapViewConfig);
-            lblCntWifi.setTextColor(getResources().getColor(((mapViewConfig.showWiFi) ? R.color.white : R.color.unseenColor), getTheme()));
-            lblCntWifiRTT.setTextColor(getResources().getColor(((mapViewConfig.showWiFi) ? R.color.white : R.color.unseenColor), getTheme()));
-        };
-        lblCntWifi.setOnClickListener(wifiClickListener);
-        lblCntWifiRTT.setOnClickListener(wifiClickListener);
+
 
         Button btnSettings = findViewById(R.id.btnSettings);
-        btnSettings.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
-            }
-        });
+        btnSettings.setOnClickListener(v -> startActivity(new Intent(getApplicationContext(), SettingsActivity.class)));
 
         mFloorNameAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
 
@@ -205,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
         }, 250, 250);
     }
 
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -220,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        Toast.makeText(this, "SensorManager stopped", Toast.LENGTH_SHORT).show();
     }
 
     private void showMap() {
@@ -235,6 +221,7 @@ public class MainActivity extends AppCompatActivity {
             currentMap.setSerializer(new MapSeenSerializer(getApplicationContext()));
         }
 
+        mapView.setViewConfig(mapViewConfig);
         mapView.setMap(currentMap);
         updateFloorNames();
 
@@ -268,22 +255,25 @@ public class MainActivity extends AppCompatActivity {
         config.hasWifiRTT = true;
         config.hasBluetooth = true;
         config.hasDecawaveUWB = true;
-        config.decawaveUWBTagMacAddress = preferences.getString("prefDecawaveUWBTagMacAddress", "");
+        config.decawaveUWBTagMacAddress = preferences.getString("prefDecawaveUWBTagMacAddress", "AA:BB:CC:DD:EE:FF");
         config.wifiScanIntervalMSec = Long.parseLong(preferences.getString("prefWifiScanIntervalMSec", Long.toString(DEFAULT_WIFI_SCAN_INTERVAL)));
         config.ftmBurstSize = 0;
 
         try {
-            MultiPermissionRequester permissionRequester = new MultiPermissionRequester(this);
             sensorManager.configure(this, config, permissionRequester);
             permissionRequester.setSuccessListener(() -> {
                 try {
+                    Log.i("RadioChecker", "Starting SensorManager");
                     sensorManager.start(this);
-                } catch (Exception e) {
+                    Toast.makeText(this, "SensorManager started", Toast.LENGTH_SHORT).show();
+                } catch (Throwable e) {
+                    Toast.makeText(this, "Failed to start SensorManager", Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
                 }
             });
             permissionRequester.launch();
         } catch (Exception e) {
+            Toast.makeText(this, "Failed to configure SensorManager", Toast.LENGTH_SHORT).show();
             e.printStackTrace();
             //TODO: ui feedback?
         }
