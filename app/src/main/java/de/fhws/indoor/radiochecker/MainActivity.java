@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
             mapView.setViewConfig(mapViewConfig);
         });
         eventCounterView.updateActiveData(true, activeData -> {
-            activeData.uwb = false; activeData.ble = false; activeData.wifi = false; activeData.ftm = false; activeData.gps = true;
+            activeData.uwb = true; activeData.ble = true; activeData.wifi = true; activeData.ftm = true; activeData.gps = true;
         });
 
 
@@ -221,6 +221,7 @@ public class MainActivity extends AppCompatActivity {
             currentMap.setSerializer(new MapSeenSerializer(getApplicationContext()));
         }
 
+        mapViewConfig.showFingerprint = false;
         mapView.setViewConfig(mapViewConfig);
         mapView.setMap(currentMap);
         updateFloorNames();
