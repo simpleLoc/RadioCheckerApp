@@ -29,7 +29,7 @@ import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
 import de.fhws.indoor.libsmartphonesensors.SensorManager;
 import de.fhws.indoor.libsmartphonesensors.sensors.WiFi;
 import de.fhws.indoor.libsmartphonesensors.ui.EventCounterView;
-import de.fhws.indoor.libsmartphonesensors.util.MultiPermissionRequester;
+import de.fhws.indoor.libsmartphonesensors.util.permissions.AppCompatMultiPermissionRequester;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -50,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
     private MapView.ViewConfig mapViewConfig = new MapView.ViewConfig();
     public static Map currentMap = null;
     private SensorManager sensorManager;
+    private AppCompatMultiPermissionRequester permissionRequester = null;
     // sensorManager status
     private Timer sensorManagerStatisticsTimer;
     private AtomicLong loadCounterWifi = new AtomicLong(0);
@@ -93,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        MultiPermissionRequester.init(this);
+        permissionRequester = new AppCompatMultiPermissionRequester(this);
 
         mapView = findViewById(R.id.MapView);
         mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor, R.color.selectedColor));
@@ -261,8 +262,8 @@ public class MainActivity extends AppCompatActivity {
         config.ftmBurstSize = 0;
 
         try {
-            sensorManager.configure(this, config);
-            MultiPermissionRequester.get().launch(() -> {
+            sensorManager.configure(this, config, permissionRequester);
+            permissionRequester.launch(() -> {
                 try {
                     Log.i("RadioChecker", "Starting SensorManager");
                     sensorManager.start(this);
