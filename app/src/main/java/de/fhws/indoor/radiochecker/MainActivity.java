@@ -1,8 +1,5 @@
 package de.fhws.indoor.radiochecker;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.preference.PreferenceManager;
-
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -14,36 +11,45 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import de.fhws.indoor.libsmartphoneindoormap.renderer.ColorScheme;
-import de.fhws.indoor.libsmartphonesensors.SensorDataInterface;
-import de.fhws.indoor.libsmartphonesensors.SensorType;
-import de.fhws.indoor.libsmartphonesensors.helpers.CsvHelper;
-import de.fhws.indoor.libsmartphonesensors.sensors.DecawaveUWB;
-import de.fhws.indoor.libsmartphoneindoormap.renderer.MapView;
-import de.fhws.indoor.libsmartphoneindoormap.model.Map;
-import de.fhws.indoor.libsmartphoneindoormap.parser.MapSeenSerializer;
-import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
-import de.fhws.indoor.libsmartphonesensors.SensorManager;
-import de.fhws.indoor.libsmartphonesensors.sensors.WiFi;
-import de.fhws.indoor.libsmartphonesensors.ui.EventCounterView;
-import de.fhws.indoor.libsmartphonesensors.util.permissions.AppCompatMultiPermissionRequester;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
+
+import de.fhws.indoor.libsmartphoneindoormap.model.MacAddress;
+import de.fhws.indoor.libsmartphoneindoormap.model.Map;
+import de.fhws.indoor.libsmartphoneindoormap.model.UWBAnchor;
+import de.fhws.indoor.libsmartphoneindoormap.model.Vec3;
+import de.fhws.indoor.libsmartphoneindoormap.parser.MapSeenSerializer;
+import de.fhws.indoor.libsmartphoneindoormap.parser.XMLMapParser;
+import de.fhws.indoor.libsmartphoneindoormap.renderer.ColorScheme;
+import de.fhws.indoor.libsmartphoneindoormap.renderer.MapView;
+import de.fhws.indoor.libsmartphonesensors.SensorDataInterface;
+import de.fhws.indoor.libsmartphonesensors.SensorManager;
+import de.fhws.indoor.libsmartphonesensors.SensorType;
+import de.fhws.indoor.libsmartphonesensors.helpers.CsvHelper;
+import de.fhws.indoor.libsmartphonesensors.helpers.UwbConfigurator;
+import de.fhws.indoor.libsmartphonesensors.sensors.DecawaveUWB;
+import de.fhws.indoor.libsmartphonesensors.sensors.WiFi;
+import de.fhws.indoor.libsmartphonesensors.ui.EventCounterView;
+import de.fhws.indoor.libsmartphonesensors.util.permissions.AppCompatMultiPermissionRequester;
 
 public class MainActivity extends AppCompatActivity {
     public static final String MAP_URI = "map.xml";
     public static final String MAP_PREFERENCES = "MAP_PREFERENCES";
     public static final String MAP_PREFERENCES_FLOOR = "FloorName";
+
+    public static final String MAP_PREFERENCES_FLOOR_IDX = "FloorIdx";
     private static final long DEFAULT_WIFI_SCAN_INTERVAL = (Build.VERSION.SDK_INT == 28 ? 30 : 1);
 
     private MapView mapView = null;
@@ -62,6 +68,8 @@ public class MainActivity extends AppCompatActivity {
     ArrayAdapter<String> mFloorNameAdapter;
     private SharedPreferences mPrefs;
 
+    private HashMap<MacAddress, UWBAnchor> ble2UwbAnchor = new HashMap<>();
+    private HashMap<MacAddress, Float> ble2FloorAtHeight = new HashMap<>();
     private void resetSensorStatistics() {
         loadCounterWifi.set(0);
         loadCounterWifiRTT.set(0);
@@ -97,7 +105,20 @@ public class MainActivity extends AppCompatActivity {
         permissionRequester = new AppCompatMultiPermissionRequester(this);
 
         mapView = findViewById(R.id.MapView);
-        mapView.setColorScheme(new ColorScheme(R.color.wallColor, R.color.unseenColor, R.color.seenColor, R.color.selectedColor));
+        mapView.setColorScheme(new ColorScheme(
+                R.color.outlineColor,
+                R.color.outlineRemoveColor,
+                R.color.wallColor,
+                R.color.wallColorConcrete,
+                R.color.wallColorWood,
+                R.color.doorColor,
+                R.color.doorColorLocked,
+                R.color.stairColor,
+                R.color.unseenColor,
+                R.color.seenColor,
+                R.color.selectedColor,
+                R.color.uwbTagColor
+        ));
         mPrefs = getSharedPreferences(MAP_PREFERENCES, MODE_PRIVATE);
 
         // configure event counter view
@@ -131,9 +152,10 @@ public class MainActivity extends AppCompatActivity {
 
                 SharedPreferences.Editor ed = mPrefs.edit();
                 ed.putString(MAP_PREFERENCES_FLOOR, floorName);
+                ed.putInt(MAP_PREFERENCES_FLOOR_IDX, i);
                 ed.apply();
 
-                mapView.selectFloor(floorName);
+                mapView.selectFloor(i);
             }
 
             @Override
@@ -150,6 +172,39 @@ public class MainActivity extends AppCompatActivity {
                 if(currentMap == null) { return; }
 
                 if(sensorId == SensorType.IBEACON) {
+
+                    String bleMacStr = csv.substring(0, 12);
+                    MacAddress bleMac = new MacAddress(bleMacStr);
+                    if (ble2UwbAnchor.containsKey(bleMac)) {
+                        DecawaveUWB sensorUWB = sensorManager.getSensor(DecawaveUWB.class);
+                        UWBAnchor anchor = ble2UwbAnchor.get(bleMac);
+                        Float floorAtHeight = ble2FloorAtHeight.get(bleMac);
+                        if (anchor != null && floorAtHeight != null) {
+                            sensorUWB.getConfigurator().configureDevicePosition(
+                                    anchor.bleMac.toColonDelimitedString(),
+                                    new UwbConfigurator.UwbAnchorConfiguration(
+                                            new UwbConfigurator.UwbAnchorPosition(anchor.position.x, anchor.position.y, anchor.position.z + floorAtHeight)
+                                    ),
+                                    new UwbConfigurator.UWBDeviceConfiguredCallback() {
+
+                                        @Override
+                                        public void done() {
+                                            currentMap.setSeenUWB(anchor.shortDeviceId);
+                                            Log.d("UWBConf", "done");
+                                        }
+
+                                        @Override
+                                        public void fail() {
+                                            Log.e("UWBConf", "fail");
+                                        }
+                                    });
+                        }
+//                            uwbConfigurator.configure(sensorUWB, anchor.bleMac, new DecawaveUWB.UWBAnchorPosition(anchor.position.x, anchor.position.y, anchor.position.z), () -> {
+//                                runOnUiThread(() -> {
+//                                    currentMap.setSeenUWB(anchor.shortDeviceId);
+//                                });
+//                            });
+                    }
                     currentMap.setSeenBeacon(csv.substring(0, 12));
                     loadCounterBeacon.incrementAndGet();
                 } else if(sensorId == SensorType.WIFI) {
@@ -162,14 +217,19 @@ public class MainActivity extends AppCompatActivity {
                 } else if(sensorId == SensorType.DECAWAVE_UWB) {
                     String[] segments = csv.split(";");
                     // skip initial 4 (x, y, z, quality) - then take every 3rd
-                    for(int i = 4; i < segments.length; i += 3) {
-                        int shortDeviceId = Integer.parseInt(segments[i]);
-                        // shortDeviceId is a uint16
-                        if(shortDeviceId >= 0 && shortDeviceId <= 65535) {
-                            String shortDeviceIdStr = String.format("%04X", shortDeviceId);
-                            currentMap.setSeenUWB(shortDeviceIdStr);
-                        }
-                    }
+//                    Log.d("UWBPos", segments[0] + " " + segments[1] + " " + segments[2] + " " + segments[3] + " len " + segments.length);
+//                    Log.d("UWBPos", Arrays.toString(segments));
+                    mapView.updateUWBTagPosition(new Vec3(Float.parseFloat(segments[0]) * 0.001f, Float.parseFloat(segments[1]) * 0.001f, Float.parseFloat(segments[2]) * 0.001f));
+
+
+//                    for(int i = 4; i < segments.length; i += 3) {
+//                        int shortDeviceId = Integer.parseInt(segments[i]);
+//                        // shortDeviceId is a uint16
+//                        if(shortDeviceId >= 0 && shortDeviceId <= 65535) {
+//                            String shortDeviceIdStr = String.format("%04X", shortDeviceId);
+//                            currentMap.setSeenUWB(shortDeviceIdStr);
+//                        }
+//                    }
                     loadCounterUWB.incrementAndGet();
                 } else if(sensorId == SensorType.GPS) {
                     loadCounterGPS.incrementAndGet();
@@ -197,6 +257,15 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
         showMap();
         setupSensors();
+
+        ble2UwbAnchor.clear();
+        ble2FloorAtHeight.clear();
+        if (currentMap != null) {
+            currentMap.getFloors().forEach(floor -> floor.getUwbAnchors().forEach((anchorShort, anchor) -> {
+                ble2UwbAnchor.put(anchor.bleMac, anchor);
+                ble2FloorAtHeight.put(anchor.bleMac, floor.getAtHeight());
+            }));
+        }
     }
 
     @Override
@@ -228,8 +297,9 @@ public class MainActivity extends AppCompatActivity {
         updateFloorNames();
 
         String floorName = mPrefs.getString(MAP_PREFERENCES_FLOOR, null);
+        int floorIdx = mPrefs.getInt(MAP_PREFERENCES_FLOOR_IDX, 0);
         if (floorName != null) {
-            mapView.selectFloor(floorName);
+            mapView.selectFloor(floorIdx);
             Spinner spinnerFloor = findViewById(R.id.spinner_selectFloor);
             int position = mFloorNameAdapter.getPosition(floorName);
             spinnerFloor.setSelection(position);
@@ -239,7 +309,7 @@ public class MainActivity extends AppCompatActivity {
     private void updateFloorNames() {
         if (currentMap != null) {
             mFloorNameAdapter.clear();
-            currentMap.getFloors().keySet().stream().sorted().forEach(s -> mFloorNameAdapter.add(s));
+            currentMap.getFloors().forEach(s -> mFloorNameAdapter.add(s.getName()));
         }
     }
 
